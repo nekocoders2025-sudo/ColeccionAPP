@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "90279949464",
+    "project_id": "coleccionapp-909eb",
+    "storage_bucket": "coleccionapp-909eb.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:90279949464:android:46730a69d1ae3bebe38ced",
+        "android_client_info": {
+          "package_name": "com.example.coleccionapp"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBL6-LRovJj81uQ8QVSGzYh9wnYsy20xHY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
