@@ -1,5 +1,5 @@
 class FiguraAccion {
-  final String id;
+  String id;
   String categoria;
   String marca;
   String lineaExpansion;
@@ -21,33 +21,18 @@ class FiguraAccion {
     required this.annoLanz,
   });
 
-  Map<String, dynamic> toJson() {
-    return {
-      'id': id,
-      'categoria': categoria,
-      'marca': marca,
-      'lineaExpansion': lineaExpansion,
-      'producto': producto,
-      'serie': serie,
-      'edicion': edicion,
-      'exclusividad': exclusividad,
-      'annoLanz': annoLanz,
-    };
-  }
-
-  factory FiguraAccion.fromJson(Map<String, dynamic> json) {
-    return FiguraAccion(
+  //Distinto al del video, no usa factory, usa Object en vez de dynamic, usa : this en lugar de return
+  FiguraAccion.fromJson(Map<String, dynamic> json) : this(
       id: json['id'] as String,
-      categoria: json['categoria'] as String? ?? '',
-      marca: json['marca'] as String? ?? '',
-      lineaExpansion: json['lineaExpansion'] as String? ?? '',
-      producto: json['producto'] as String? ?? '',
-      serie: json['serie'] as String? ?? '',
-      edicion: json['edicion'] as String? ?? '',
-      exclusividad: json['exclusividad'] as String? ?? '',
-      annoLanz: json['annoLanz'] as String? ?? '',
+      categoria: json['categoria'] as String,
+      marca: json['marca'] as String,
+      lineaExpansion: json['lineaExpansion'] as String,
+      producto: json['producto'] as String,
+      serie: json['serie'] as String,
+      edicion: json['edicion'] as String,
+      exclusividad: json['exclusividad'] as String,
+      annoLanz: json['annoLanz'] as String,
     );
-  }
 
   FiguraAccion copyWith({
     String? id,
@@ -72,5 +57,21 @@ class FiguraAccion {
       annoLanz: annoLanz ?? this.annoLanz,
     );
   }
+
+  //Distinto al del video, usa Object en lugar de Dynamic
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'categoria': categoria,
+      'marca': marca,
+      'lineaExpansion': lineaExpansion,
+      'producto': producto,
+      'serie': serie,
+      'edicion': edicion,
+      'exclusividad': exclusividad,
+      'annoLanz': annoLanz,
+    };
+  }
+
 }
 

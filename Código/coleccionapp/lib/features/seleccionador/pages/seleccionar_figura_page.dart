@@ -236,7 +236,7 @@ class _SeleccionarFiguraScreenState extends State<SeleccionarFiguraScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Seleccionar Figura'),
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
+        backgroundColor: Theme.of(context).colorScheme.secondary,
         elevation: 2,
         actions: [
           IconButton(
@@ -279,7 +279,7 @@ class _SeleccionarFiguraScreenState extends State<SeleccionarFiguraScreen> {
                 // Filtros
                 if (_mostrarFiltros)
                   Container(
-                    padding: const EdgeInsets.all(16),
+                    padding: const EdgeInsets.all(12),
                     color: Theme.of(context).colorScheme.surfaceContainerHighest,
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -413,7 +413,7 @@ class _SeleccionarFiguraScreenState extends State<SeleccionarFiguraScreen> {
                               ),
                               const SizedBox(height: 8),
                               Text(
-                                'Agrega figuras al repositorio primero',
+                                'Se deben agregar figuras al repositorio',
                                 style: TextStyle(
                                   fontSize: 14,
                                   color: Colors.grey[500],
@@ -442,7 +442,7 @@ class _SeleccionarFiguraScreenState extends State<SeleccionarFiguraScreen> {
                                   ),
                                   const SizedBox(height: 8),
                                   Text(
-                                    'Intenta ajustar los filtros o la búsqueda',
+                                    'Intenta ajustando los filtros o texto de búsqueda',
                                     style: TextStyle(
                                       fontSize: 14,
                                       color: Colors.grey[500],
@@ -468,9 +468,9 @@ class _SeleccionarFiguraScreenState extends State<SeleccionarFiguraScreen> {
                                       leading: CircleAvatar(
                                         backgroundColor: Theme.of(context)
                                             .colorScheme
-                                            .secondaryContainer,
+                                            .primaryContainer,
                                         child: Icon(
-                                          Icons.toys,
+                                          Icons.smart_toy_outlined,
                                           color: Theme.of(context).colorScheme.secondary,
                                         ),
                                       ),

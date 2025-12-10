@@ -99,6 +99,7 @@ class AuthCubit extends Cubit<AuthState> {
     }
   }
 
+  
   // Inicio de sesión con Google
   Future<void> signInWithGoogle() async {
     try {
@@ -116,4 +117,5 @@ class AuthCubit extends Cubit<AuthState> {
       emit(Unauthenticated());
     }
   }
+  
 }

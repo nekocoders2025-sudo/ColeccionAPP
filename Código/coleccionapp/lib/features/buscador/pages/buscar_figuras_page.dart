@@ -1,3 +1,4 @@
+import 'package:coleccionapp/features/auth/services/user_service.dart';
 import 'package:coleccionapp/features/repositorio/models/figura_accion.dart';
 import 'package:coleccionapp/features/repositorio/pages/repositorio_page.dart' show EditarFiguraScreen;
 import 'package:coleccionapp/features/repositorio/services/repositorio_service.dart';
@@ -17,12 +18,14 @@ class BuscarFigurasScreen extends StatefulWidget {
 
 class _BuscarFigurasScreenState extends State<BuscarFigurasScreen> {
   final RepositorioService _repositorioService = RepositorioService();
+  final UserService _userService = UserService();
   final TextEditingController _busquedaController = TextEditingController();
   
   List<FiguraAccion> _todasLasFiguras = [];
   List<FiguraAccion> _figurasFiltradas = [];
   bool _cargando = true;
   bool _mostrarFiltros = false;
+  bool _esAdmin = false;
 
   // Filtros
   String? _filtroCategoria;
@@ -43,8 +46,16 @@ class _BuscarFigurasScreenState extends State<BuscarFigurasScreen> {
   @override
   void initState() {
     super.initState();
+    _verificarRolAdmin();
     _cargarFiguras();
     _busquedaController.addListener(_aplicarFiltros);
+  }
+
+  Future<void> _verificarRolAdmin() async {
+    final esAdmin = await _userService.esAdmin();
+    setState(() {
+      _esAdmin = esAdmin;
+    });
   }
 
   @override
@@ -171,13 +182,14 @@ class _BuscarFigurasScreenState extends State<BuscarFigurasScreen> {
             onPressed: () => Navigator.pop(context),
             child: const Text('Cerrar'),
           ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(context);
-              _editarFigura(figura);
-            },
-            child: const Text('Editar'),
-          ),
+          if (_esAdmin)
+            ElevatedButton(
+              onPressed: () {
+                Navigator.pop(context);
+                _editarFigura(figura);
+              },
+              child: const Text('Editar'),
+            ),
         ],
       ),
     );
@@ -209,7 +221,7 @@ class _BuscarFigurasScreenState extends State<BuscarFigurasScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Buscar Figuras'),
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
+        backgroundColor: Theme.of(context).colorScheme.secondary,
         elevation: 2,
         actions: [
           IconButton(
@@ -252,7 +264,7 @@ class _BuscarFigurasScreenState extends State<BuscarFigurasScreen> {
                 // Filtros
                 if (_mostrarFiltros)
                   Container(
-                    padding: const EdgeInsets.all(16),
+                    padding: const EdgeInsets.all(12),
                     color: Theme.of(context).colorScheme.surfaceContainerHighest,
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -412,9 +424,9 @@ class _BuscarFigurasScreenState extends State<BuscarFigurasScreen> {
                                   leading: CircleAvatar(
                                     backgroundColor: Theme.of(context)
                                         .colorScheme
-                                        .secondaryContainer,
+                                        .primaryContainer,
                                     child: Icon(
-                                      Icons.toys,
+                                      Icons.smart_toy_outlined,
                                       color: Theme.of(context).colorScheme.secondary,
                                     ),
                                   ),
@@ -443,11 +455,12 @@ class _BuscarFigurasScreenState extends State<BuscarFigurasScreen> {
                                         onPressed: () => _verDetalles(figura),
                                         tooltip: 'Ver detalles',
                                       ),
-                                      IconButton(
-                                        icon: const Icon(Icons.edit),
-                                        onPressed: () => _editarFigura(figura),
-                                        tooltip: 'Editar',
-                                      ),
+                                      if (_esAdmin)
+                                        IconButton(
+                                          icon: const Icon(Icons.edit),
+                                          onPressed: () => _editarFigura(figura),
+                                          tooltip: 'Editar',
+                                        ),
                                     ],
                                   ),
                                   onTap: () => _verDetalles(figura),

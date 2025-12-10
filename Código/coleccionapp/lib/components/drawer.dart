@@ -1,4 +1,5 @@
 import 'package:coleccionapp/features/auth/presentation/cubits/auth_cubit.dart';
+import 'package:coleccionapp/features/auth/services/user_service.dart';
 import 'package:coleccionapp/features/buscador/pages/buscar_figuras_page.dart';
 import 'package:coleccionapp/features/lista/pages/lista_listas_page.dart';
 import 'package:coleccionapp/features/profile/profile_page.dart';
@@ -59,8 +60,8 @@ class MyDrawer extends StatelessWidget {
           children: [
             // header icon
             Container(
-              height: 100,
-              color: Theme.of(context).colorScheme.primary,
+              height: 130,
+              color: Theme.of(context).colorScheme.secondary,
               child: Image.asset('lib/assets/icon.png'),
             ),
 
@@ -143,19 +144,26 @@ class MyDrawer extends StatelessWidget {
               },*/
             ),
 
-            // Repositorio
-            MyDrawerTile(
-              text: "Repositorio Productos",
-              icon: Icons.storage,
-              //onTap: () => Navigator.pop(context), //Eliminar luego de rutear correctamente
-              onTap: () {
-                Navigator.pop(context);
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const RepositorioScreen(),
-                  ),
-                );
+            // Repositorio (solo visible para Admin)
+            FutureBuilder<bool>(
+              future: UserService().esAdmin(),
+              builder: (context, snapshot) {
+                if (snapshot.hasData && snapshot.data == true) {
+                  return MyDrawerTile(
+                    text: "Repositorio Productos",
+                    icon: Icons.storage,
+                    onTap: () {
+                      Navigator.pop(context);
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const RepositorioScreen(),
+                        ),
+                      );
+                    },
+                  );
+                }
+                return const SizedBox.shrink();
               },
             ),
 

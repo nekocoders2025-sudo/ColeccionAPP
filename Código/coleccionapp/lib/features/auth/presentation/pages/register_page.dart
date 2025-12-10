@@ -79,8 +79,8 @@ class _RegisterPageState extends State<RegisterPage> {
               children: [
                 // Logo
                 Container(
-                  height: 180,
-                  color: Theme.of(context).colorScheme.primary,
+                  height: 225,
+                  color: Theme.of(context).colorScheme.secondary,
                   child: Image.asset('lib/assets/icon.png'),
                 ),
 
@@ -88,10 +88,10 @@ class _RegisterPageState extends State<RegisterPage> {
 
                 // Nombre de pantalla
                 Text(
-                  "CREAR CUENTA NUEVA",
+                  "Crea tu nueva cuenta",
                   style: TextStyle(
-                    fontSize: 25,
-                    color: Theme.of(context).colorScheme.inversePrimary,
+                    fontSize: 15,
+                    color: Theme.of(context).colorScheme.primary,
                   ),
                 ),
 
@@ -120,6 +120,7 @@ class _RegisterPageState extends State<RegisterPage> {
                   controller: pwController,
                   hintText: "Contraseña",
                   obscureText: true,
+                  showTogglePassword: true,
                 ),
 
                 const SizedBox(height: 10),
@@ -129,6 +130,7 @@ class _RegisterPageState extends State<RegisterPage> {
                   controller: confirmPwController,
                   hintText: "Confirmar Contraseña",
                   obscureText: true,
+                  showTogglePassword: true,
                 ),
 
                 const SizedBox(height: 25),

@@ -6,13 +6,17 @@ BACKEND FIREBASE -- Puede ser cambiado desde aquí
 
 import 'package:coleccionapp/features/auth/domain/entities/app_user.dart';
 import 'package:coleccionapp/features/auth/domain/repos/auth_repos.dart';
+import 'package:coleccionapp/features/auth/models/usuario.dart';
+import 'package:coleccionapp/features/auth/services/user_service.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
 
 class FirebaseAuthRepo implements AuthRepo {
   // Acceso a firebase
   final FirebaseAuth firebaseAuth = FirebaseAuth.instance;
+  final UserService _userService = UserService();
 
   // INICIO DE SESIÓN: Email & Contraseña
   @override
@@ -49,6 +53,22 @@ class FirebaseAuthRepo implements AuthRepo {
 
       // Crear Usuario
       AppUser user = AppUser(uid: userCredential.user!.uid, email: email);
+
+      // Guardar datos del usuario en Firestore
+      final usuario = Usuario(
+        usuarioId: userCredential.user!.uid,
+        nombre: name,
+        correo: email,
+        rol: 'User',
+      );
+      
+      try {
+        await _userService.crearUsuario(usuario);
+      } catch (e) {
+        // Si falla guardar en Firestore, no fallar el registro completo
+        // pero registrar el error para debugging
+        debugPrint('Error al guardar usuario en Firestore: $e');
+      }
 
       // Retornar usuario
       return user;
@@ -110,6 +130,7 @@ class FirebaseAuthRepo implements AuthRepo {
     }
   }
 
+  
   // INICIO DE SESIÓN CON GOOGLE
   @override
   Future<AppUser?> signInWithGoogle() async {
@@ -151,4 +172,5 @@ class FirebaseAuthRepo implements AuthRepo {
       return null;
     }
   }
+  
 }

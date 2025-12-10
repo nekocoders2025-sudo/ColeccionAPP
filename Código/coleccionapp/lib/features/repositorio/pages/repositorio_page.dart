@@ -1,3 +1,4 @@
+import 'package:coleccionapp/features/auth/services/user_service.dart';
 import 'package:coleccionapp/features/buscador/pages/buscar_figuras_page.dart';
 import 'package:coleccionapp/features/repositorio/models/figura_accion.dart';
 import 'package:coleccionapp/features/repositorio/services/repositorio_service.dart';
@@ -14,14 +15,24 @@ class RepositorioScreen extends StatefulWidget {
 
 class _RepositorioScreenState extends State<RepositorioScreen> {
   final RepositorioService _repositorioService = RepositorioService();
+  final UserService _userService = UserService();
   List<FiguraAccion> _figuras = [];
   bool _cargando = true;
+  bool _esAdmin = false;
   final ScrollController _scrollController = ScrollController();
 
   @override
   void initState() {
     super.initState();
+    _verificarRolAdmin();
     _cargarFiguras();
+  }
+
+  Future<void> _verificarRolAdmin() async {
+    final esAdmin = await _userService.esAdmin();
+    setState(() {
+      _esAdmin = esAdmin;
+    });
   }
 
   @override
@@ -34,11 +45,26 @@ class _RepositorioScreenState extends State<RepositorioScreen> {
     setState(() {
       _cargando = true;
     });
-    final figuras = await _repositorioService.obtenerFiguras();
-    setState(() {
-      _figuras = figuras;
-      _cargando = false;
-    });
+    try {
+      final figuras = await _repositorioService.obtenerFiguras();
+      setState(() {
+        _figuras = figuras;
+        _cargando = false;
+      });
+    } catch (e) {
+      setState(() {
+        _cargando = false;
+      });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(e.toString().replaceFirst('Exception: ', '')),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 5),
+          ),
+        );
+      }
+    }
   }
 
   Future<void> _agregarFigura() async {
@@ -93,8 +119,28 @@ class _RepositorioScreenState extends State<RepositorioScreen> {
     );
 
     if (confirmar == true) {
-      await _repositorioService.eliminarFigura(figura.id);
-      _cargarFiguras();
+      try {
+        await _repositorioService.eliminarFigura(figura.id);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Figura eliminada correctamente'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
+        _cargarFiguras();
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(e.toString().replaceFirst('Exception: ', '')),
+              backgroundColor: Colors.red,
+              duration: const Duration(seconds: 5),
+            ),
+          );
+        }
+      }
     }
   }
 
@@ -103,7 +149,7 @@ class _RepositorioScreenState extends State<RepositorioScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Repositorio de Figuras'),
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
+        backgroundColor: Theme.of(context).colorScheme.secondary,
         elevation: 2,
         actions: [
           IconButton(
@@ -159,17 +205,18 @@ class _RepositorioScreenState extends State<RepositorioScreen> {
                     scrollDirection: Axis.horizontal,
                     child: SingleChildScrollView(
                       child: DataTable(
-                        columns: const [
-                          DataColumn(label: Text('ID', style: TextStyle(fontWeight: FontWeight.bold))),
-                          DataColumn(label: Text('CATEGORIA', style: TextStyle(fontWeight: FontWeight.bold))),
-                          DataColumn(label: Text('MARCA', style: TextStyle(fontWeight: FontWeight.bold))),
-                          DataColumn(label: Text('LINEA_EXPANSION', style: TextStyle(fontWeight: FontWeight.bold))),
-                          DataColumn(label: Text('PRODUCTO', style: TextStyle(fontWeight: FontWeight.bold))),
-                          DataColumn(label: Text('SERIE', style: TextStyle(fontWeight: FontWeight.bold))),
-                          DataColumn(label: Text('EDICION', style: TextStyle(fontWeight: FontWeight.bold))),
-                          DataColumn(label: Text('EXCLUSIVIDAD', style: TextStyle(fontWeight: FontWeight.bold))),
-                          DataColumn(label: Text('ANNO_LANZ', style: TextStyle(fontWeight: FontWeight.bold))),
-                          DataColumn(label: Text('ACCIONES', style: TextStyle(fontWeight: FontWeight.bold))),
+                        columns: [
+                          const DataColumn(label: Text('ID', style: TextStyle(fontWeight: FontWeight.bold))),
+                          const DataColumn(label: Text('CATEGORIA', style: TextStyle(fontWeight: FontWeight.bold))),
+                          const DataColumn(label: Text('MARCA', style: TextStyle(fontWeight: FontWeight.bold))),
+                          const DataColumn(label: Text('LINEA_EXPANSION', style: TextStyle(fontWeight: FontWeight.bold))),
+                          const DataColumn(label: Text('PRODUCTO', style: TextStyle(fontWeight: FontWeight.bold))),
+                          const DataColumn(label: Text('SERIE', style: TextStyle(fontWeight: FontWeight.bold))),
+                          const DataColumn(label: Text('EDICION', style: TextStyle(fontWeight: FontWeight.bold))),
+                          const DataColumn(label: Text('EXCLUSIVIDAD', style: TextStyle(fontWeight: FontWeight.bold))),
+                          const DataColumn(label: Text('ANNO_LANZ', style: TextStyle(fontWeight: FontWeight.bold))),
+                          if (_esAdmin)
+                            const DataColumn(label: Text('ACCIONES', style: TextStyle(fontWeight: FontWeight.bold))),
                         ],
                         rows: _figuras.map((figura) {
                           return DataRow(
@@ -188,30 +235,31 @@ class _RepositorioScreenState extends State<RepositorioScreen> {
                               DataCell(SelectableText(figura.lineaExpansion)),
                               DataCell(
                                 SelectableText(figura.producto),
-                                showEditIcon: true,
-                                onTap: () => _editarFigura(figura),
+                                showEditIcon: _esAdmin,
+                                onTap: _esAdmin ? () => _editarFigura(figura) : null,
                               ),
                               DataCell(SelectableText(figura.serie)),
                               DataCell(SelectableText(figura.edicion)),
                               DataCell(SelectableText(figura.exclusividad)),
                               DataCell(SelectableText(figura.annoLanz)),
-                              DataCell(
-                                Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    IconButton(
-                                      icon: const Icon(Icons.edit, size: 20),
-                                      onPressed: () => _editarFigura(figura),
-                                      tooltip: 'Editar',
-                                    ),
-                                    IconButton(
-                                      icon: const Icon(Icons.delete, size: 20, color: Colors.red),
-                                      onPressed: () => _eliminarFigura(figura),
-                                      tooltip: 'Eliminar',
-                                    ),
-                                  ],
+                              if (_esAdmin)
+                                DataCell(
+                                  Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      IconButton(
+                                        icon: const Icon(Icons.edit, size: 20),
+                                        onPressed: () => _editarFigura(figura),
+                                        tooltip: 'Editar',
+                                      ),
+                                      IconButton(
+                                        icon: const Icon(Icons.delete, size: 20, color: Colors.red),
+                                        onPressed: () => _eliminarFigura(figura),
+                                        tooltip: 'Eliminar',
+                                      ),
+                                    ],
+                                  ),
                                 ),
-                              ),
                             ],
                           );
                         }).toList(),
@@ -219,11 +267,13 @@ class _RepositorioScreenState extends State<RepositorioScreen> {
                     ),
                   ),
                 ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _agregarFigura,
-        tooltip: 'Agregar Figura',
-        child: const Icon(Icons.add),
-      ),
+      floatingActionButton: _esAdmin
+          ? FloatingActionButton(
+              onPressed: _agregarFigura,
+              tooltip: 'Agregar Figura',
+              child: const Icon(Icons.add),
+            )
+          : null,
     );
   }
 }
@@ -241,37 +291,103 @@ class _EditarFiguraScreenState extends State<EditarFiguraScreen> {
   final _formKey = GlobalKey<FormState>();
   final RepositorioService _repositorioService = RepositorioService();
   
-  late TextEditingController _categoriaController;
-  late TextEditingController _marcaController;
-  late TextEditingController _lineaExpansionController;
+  // Opciones para los dropdowns
+  static const List<String> _categorias = [
+    'Figura Coleccionable',
+    'Carta Coleccionable',
+  ];
+  
+  static const List<String> _marcas = [
+    'Storm Collectibles',
+    'Jada Toys',
+    'Tamashii Nations',
+  ];
+  
+  static const List<String> _lineasExpansion = [
+    'Figuras de Acción',
+    'Storm Arena',
+    'SH Figuarts',
+  ];
+  
+  static const List<String> _series = [
+    'Street Fighter Alpha 3',
+    'Ultra Street Fighter 2',
+    'The King of Fighters 98',
+    'Gamerverse',
+    'Dragon Ball',
+    'Dragon Ball Z',
+    'Dragon Ball Super',
+  ];
+  
+  static const List<String> _ediciones = [
+    'Regular',
+    'Exclusiva',
+    'Version 1',
+    'Version 2',
+    'Version 3',
+    'Version 4',
+  ];
+  
+  static const List<String> _exclusividades = [
+    'Normal',
+    'Exclusivo de Tienda',
+    'Exclusivo de Evento',
+    'Foil',
+    'Arte Alternativo',
+  ];
+  
+  // Variables para los dropdowns
+  String? _categoriaSeleccionada;
+  String? _marcaSeleccionada;
+  String? _lineaExpansionSeleccionada;
+  String? _serieSeleccionada;
+  String? _edicionSeleccionada;
+  String? _exclusividadSeleccionada;
+  
   late TextEditingController _productoController;
-  late TextEditingController _serieController;
-  late TextEditingController _edicionController;
-  late TextEditingController _exclusividadController;
   late TextEditingController _annoLanzController;
 
   @override
   void initState() {
     super.initState();
-    _categoriaController = TextEditingController(text: widget.figura?.categoria ?? '');
-    _marcaController = TextEditingController(text: widget.figura?.marca ?? '');
-    _lineaExpansionController = TextEditingController(text: widget.figura?.lineaExpansion ?? '');
+    // Inicializar valores solo si están en las listas de opciones
+    final categoriaExistente = widget.figura?.categoria;
+    _categoriaSeleccionada = categoriaExistente != null && _categorias.contains(categoriaExistente)
+        ? categoriaExistente
+        : null;
+    
+    final marcaExistente = widget.figura?.marca;
+    _marcaSeleccionada = marcaExistente != null && _marcas.contains(marcaExistente)
+        ? marcaExistente
+        : null;
+    
+    final lineaExistente = widget.figura?.lineaExpansion;
+    _lineaExpansionSeleccionada = lineaExistente != null && _lineasExpansion.contains(lineaExistente)
+        ? lineaExistente
+        : null;
+    
+    final serieExistente = widget.figura?.serie;
+    _serieSeleccionada = serieExistente != null && _series.contains(serieExistente)
+        ? serieExistente
+        : null;
+    
+    final edicionExistente = widget.figura?.edicion;
+    _edicionSeleccionada = edicionExistente != null && _ediciones.contains(edicionExistente)
+        ? edicionExistente
+        : null;
+    
+    final exclusividadExistente = widget.figura?.exclusividad;
+    _exclusividadSeleccionada = exclusividadExistente != null && _exclusividades.contains(exclusividadExistente)
+        ? exclusividadExistente
+        : null;
+    
     _productoController = TextEditingController(text: widget.figura?.producto ?? '');
-    _serieController = TextEditingController(text: widget.figura?.serie ?? '');
-    _edicionController = TextEditingController(text: widget.figura?.edicion ?? '');
-    _exclusividadController = TextEditingController(text: widget.figura?.exclusividad ?? '');
     _annoLanzController = TextEditingController(text: widget.figura?.annoLanz ?? '');
   }
 
   @override
   void dispose() {
-    _categoriaController.dispose();
-    _marcaController.dispose();
-    _lineaExpansionController.dispose();
     _productoController.dispose();
-    _serieController.dispose();
-    _edicionController.dispose();
-    _exclusividadController.dispose();
     _annoLanzController.dispose();
     super.dispose();
   }
@@ -280,35 +396,63 @@ class _EditarFiguraScreenState extends State<EditarFiguraScreen> {
     if (_formKey.currentState!.validate()) {
       final figura = widget.figura != null
           ? widget.figura!.copyWith(
-              categoria: _categoriaController.text.trim(),
-              marca: _marcaController.text.trim(),
-              lineaExpansion: _lineaExpansionController.text.trim(),
+              categoria: _categoriaSeleccionada ?? '',
+              marca: _marcaSeleccionada ?? '',
+              lineaExpansion: _lineaExpansionSeleccionada ?? '',
               producto: _productoController.text.trim(),
-              serie: _serieController.text.trim(),
-              edicion: _edicionController.text.trim(),
-              exclusividad: _exclusividadController.text.trim(),
+              serie: _serieSeleccionada ?? '',
+              edicion: _edicionSeleccionada ?? '',
+              exclusividad: _exclusividadSeleccionada ?? '',
               annoLanz: _annoLanzController.text.trim(),
             )
           : FiguraAccion(
               id: DateTime.now().millisecondsSinceEpoch.toString(),
-              categoria: _categoriaController.text.trim(),
-              marca: _marcaController.text.trim(),
-              lineaExpansion: _lineaExpansionController.text.trim(),
+              categoria: _categoriaSeleccionada ?? '',
+              marca: _marcaSeleccionada ?? '',
+              lineaExpansion: _lineaExpansionSeleccionada ?? '',
               producto: _productoController.text.trim(),
-              serie: _serieController.text.trim(),
-              edicion: _edicionController.text.trim(),
-              exclusividad: _exclusividadController.text.trim(),
+              serie: _serieSeleccionada ?? '',
+              edicion: _edicionSeleccionada ?? '',
+              exclusividad: _exclusividadSeleccionada ?? '',
               annoLanz: _annoLanzController.text.trim(),
             );
 
-      if (widget.figura != null) {
-        await _repositorioService.actualizarFigura(figura);
-      } else {
-        await _repositorioService.agregarFigura(figura);
-      }
+      try {
+        if (widget.figura != null) {
+          await _repositorioService.actualizarFigura(figura);
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Figura actualizada correctamente'),
+                backgroundColor: Colors.green,
+              ),
+            );
+          }
+        } else {
+          await _repositorioService.agregarFigura(figura);
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Figura agregada correctamente'),
+                backgroundColor: Colors.green,
+              ),
+            );
+          }
+        }
 
-      if (mounted) {
-        Navigator.pop(context, true);
+        if (mounted) {
+          Navigator.pop(context, true);
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(e.toString().replaceFirst('Exception: ', '')),
+              backgroundColor: Colors.red,
+              duration: const Duration(seconds: 5),
+            ),
+          );
+        }
       }
     }
   }
@@ -318,41 +462,86 @@ class _EditarFiguraScreenState extends State<EditarFiguraScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text(widget.figura != null ? 'Editar Figura' : 'Nueva Figura'),
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
+        backgroundColor: Theme.of(context).colorScheme.secondary,
       ),
       body: Form(
         key: _formKey,
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
-            TextFormField(
-              controller: _categoriaController,
+            DropdownButtonFormField<String>(
+              value: _categoriaSeleccionada,
               decoration: const InputDecoration(
                 labelText: 'CATEGORIA',
                 border: OutlineInputBorder(),
-                hintText: 'Ej: Figura de acción',
               ),
-              textCapitalization: TextCapitalization.words,
+              items: _categorias.map((String categoria) {
+                return DropdownMenuItem<String>(
+                  value: categoria,
+                  child: Text(categoria),
+                );
+              }).toList(),
+              onChanged: (String? nuevoValor) {
+                setState(() {
+                  _categoriaSeleccionada = nuevoValor;
+                });
+              },
+              validator: (value) {
+                if (value == null || value.isEmpty) {
+                  return 'Por favor selecciona una categoría';
+                }
+                return null;
+              },
             ),
             const SizedBox(height: 16),
-            TextFormField(
-              controller: _marcaController,
+            DropdownButtonFormField<String>(
+              value: _marcaSeleccionada,
               decoration: const InputDecoration(
                 labelText: 'MARCA',
                 border: OutlineInputBorder(),
-                hintText: 'Ej: Hasbro, Bandai',
               ),
-              textCapitalization: TextCapitalization.words,
+              items: _marcas.map((String marca) {
+                return DropdownMenuItem<String>(
+                  value: marca,
+                  child: Text(marca),
+                );
+              }).toList(),
+              onChanged: (String? nuevoValor) {
+                setState(() {
+                  _marcaSeleccionada = nuevoValor;
+                });
+              },
+              validator: (value) {
+                if (value == null || value.isEmpty) {
+                  return 'Por favor selecciona una marca';
+                }
+                return null;
+              },
             ),
             const SizedBox(height: 16),
-            TextFormField(
-              controller: _lineaExpansionController,
+            DropdownButtonFormField<String>(
+              value: _lineaExpansionSeleccionada,
               decoration: const InputDecoration(
                 labelText: 'LINEA_EXPANSION',
                 border: OutlineInputBorder(),
-                hintText: 'Ej: Marvel Legends, Star Wars Black Series',
               ),
-              textCapitalization: TextCapitalization.words,
+              items: _lineasExpansion.map((String linea) {
+                return DropdownMenuItem<String>(
+                  value: linea,
+                  child: Text(linea),
+                );
+              }).toList(),
+              onChanged: (String? nuevoValor) {
+                setState(() {
+                  _lineaExpansionSeleccionada = nuevoValor;
+                });
+              },
+              validator: (value) {
+                if (value == null || value.isEmpty) {
+                  return 'Por favor selecciona una línea de expansión';
+                }
+                return null;
+              },
             ),
             const SizedBox(height: 16),
             TextFormField(
@@ -371,33 +560,61 @@ class _EditarFiguraScreenState extends State<EditarFiguraScreen> {
               },
             ),
             const SizedBox(height: 16),
-            TextFormField(
-              controller: _serieController,
+            DropdownButtonFormField<String>(
+              value: _serieSeleccionada,
               decoration: const InputDecoration(
                 labelText: 'SERIE',
                 border: OutlineInputBorder(),
-                hintText: 'Ej: Serie 1, Wave 2',
               ),
+              items: _series.map((String serie) {
+                return DropdownMenuItem<String>(
+                  value: serie,
+                  child: Text(serie),
+                );
+              }).toList(),
+              onChanged: (String? nuevoValor) {
+                setState(() {
+                  _serieSeleccionada = nuevoValor;
+                });
+              },
             ),
             const SizedBox(height: 16),
-            TextFormField(
-              controller: _edicionController,
+            DropdownButtonFormField<String>(
+              value: _edicionSeleccionada,
               decoration: const InputDecoration(
                 labelText: 'EDICION',
                 border: OutlineInputBorder(),
-                hintText: 'Ej: Edición especial, Variante',
               ),
-              textCapitalization: TextCapitalization.words,
+              items: _ediciones.map((String edicion) {
+                return DropdownMenuItem<String>(
+                  value: edicion,
+                  child: Text(edicion),
+                );
+              }).toList(),
+              onChanged: (String? nuevoValor) {
+                setState(() {
+                  _edicionSeleccionada = nuevoValor;
+                });
+              },
             ),
             const SizedBox(height: 16),
-            TextFormField(
-              controller: _exclusividadController,
+            DropdownButtonFormField<String>(
+              value: _exclusividadSeleccionada,
               decoration: const InputDecoration(
                 labelText: 'EXCLUSIVIDAD',
                 border: OutlineInputBorder(),
-                hintText: 'Ej: Exclusivo de tienda, Internacional',
               ),
-              textCapitalization: TextCapitalization.words,
+              items: _exclusividades.map((String exclusividad) {
+                return DropdownMenuItem<String>(
+                  value: exclusividad,
+                  child: Text(exclusividad),
+                );
+              }).toList(),
+              onChanged: (String? nuevoValor) {
+                setState(() {
+                  _exclusividadSeleccionada = nuevoValor;
+                });
+              },
             ),
             const SizedBox(height: 16),
             TextFormField(

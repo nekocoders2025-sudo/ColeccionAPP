@@ -1,8 +1,10 @@
+import 'package:coleccionapp/features/auth/services/user_service.dart';
 import 'package:coleccionapp/features/buscador/pages/buscar_figuras_page.dart';
 import 'package:coleccionapp/features/lista/models/lista_productos.dart';
 import 'package:coleccionapp/features/lista/pages/detalle_lista_page.dart';
 import 'package:coleccionapp/features/lista/services/lista_service.dart';
 import 'package:coleccionapp/features/repositorio/pages/repositorio_page.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 
@@ -15,24 +17,49 @@ class ListaListasScreen extends StatefulWidget {
 
 class _ListaListasScreenState extends State<ListaListasScreen> {
   final ListaService _listaService = ListaService();
+  final UserService _userService = UserService();
   List<ListaProductos> _listas = [];
   bool _cargando = true;
+  bool _esAdmin = false;
 
   @override
   void initState() {
     super.initState();
+    _verificarRolAdmin();
     _cargarListas();
+  }
+
+  Future<void> _verificarRolAdmin() async {
+    final esAdmin = await _userService.esAdmin();
+    setState(() {
+      _esAdmin = esAdmin;
+    });
   }
 
   Future<void> _cargarListas() async {
     setState(() {
       _cargando = true;
     });
-    final listas = await _listaService.obtenerListas();
-    setState(() {
-      _listas = listas;
-      _cargando = false;
-    });
+    try {
+      final listas = await _listaService.obtenerListas();
+      setState(() {
+        _listas = listas;
+        _cargando = false;
+      });
+    } catch (e) {
+      setState(() {
+        _cargando = false;
+      });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(e.toString().replaceFirst('Exception: ', '')),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 5),
+          ),
+        );
+      }
+    }
   }
 
   Future<void> _crearNuevaLista() async {
@@ -69,12 +96,46 @@ class _ListaListasScreenState extends State<ListaListasScreen> {
     );
 
     if (resultado != null && resultado.isNotEmpty) {
-      final nuevaLista = ListaProductos(
-        id: DateTime.now().millisecondsSinceEpoch.toString(),
-        nombre: resultado,
-      );
-      await _listaService.agregarLista(nuevaLista);
-      _cargarListas();
+      try {
+        final userId = FirebaseAuth.instance.currentUser?.uid;
+        if (userId == null) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Usuario no autenticado. Por favor, inicia sesión.'),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
+          return;
+        }
+
+        final nuevaLista = ListaProductos(
+          id: DateTime.now().millisecondsSinceEpoch.toString(),
+          userId: userId,
+          nombre: resultado,
+        );
+        await _listaService.agregarLista(nuevaLista);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Lista creada correctamente'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
+        _cargarListas();
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(e.toString().replaceFirst('Exception: ', '')),
+              backgroundColor: Colors.red,
+              duration: const Duration(seconds: 5),
+            ),
+          );
+        }
+      }
     }
   }
 
@@ -112,10 +173,49 @@ class _ListaListasScreenState extends State<ListaListasScreen> {
     );
 
     if (resultado != null && resultado.isNotEmpty) {
-      final listaActualizada = lista.copyWith(nombre: resultado);
-      await _listaService.actualizarLista(listaActualizada);
-      _cargarListas();
+      try {
+        final listaActualizada = lista.copyWith(nombre: resultado);
+        await _listaService.actualizarLista(listaActualizada);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Lista actualizada correctamente'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
+        _cargarListas();
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(e.toString().replaceFirst('Exception: ', '')),
+              backgroundColor: Colors.red,
+              duration: const Duration(seconds: 5),
+            ),
+          );
+        }
+      }
     }
+  }
+
+  // Calcular porcentaje de completitud
+  double _calcularPorcentajeCompletitud(ListaProductos lista) {
+    if (lista.productos.isEmpty) return 0.0;
+    final productosObtenidos = lista.productos.where((p) => p.obtenida).length;
+    return (productosObtenidos / lista.productos.length) * 100;
+  }
+
+  // Obtener color según el porcentaje de completitud
+  Color _obtenerColorPorcentaje(double porcentaje) {
+    if (porcentaje >= 0 && porcentaje <= 25) {
+      return Colors.red;
+    } else if (porcentaje > 25 && porcentaje < 100) {
+      return Colors.orange;
+    } else if (porcentaje == 100) {
+      return Colors.green;
+    }
+    return Colors.grey; // Fallback
   }
 
   Future<void> _eliminarLista(ListaProductos lista) async {
@@ -144,8 +244,28 @@ class _ListaListasScreenState extends State<ListaListasScreen> {
     );
 
     if (confirmar == true) {
-      await _listaService.eliminarLista(lista.id);
-      _cargarListas();
+      try {
+        await _listaService.eliminarLista(lista.id);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Lista eliminada correctamente'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
+        _cargarListas();
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(e.toString().replaceFirst('Exception: ', '')),
+              backgroundColor: Colors.red,
+              duration: const Duration(seconds: 5),
+            ),
+          );
+        }
+      }
     }
   }
 
@@ -153,8 +273,8 @@ class _ListaListasScreenState extends State<ListaListasScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('ColeccionApp'),
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
+        title: const Text('Mis Colecciones'),
+        backgroundColor: Theme.of(context).colorScheme.secondary,
         elevation: 2,
         actions: [
           IconButton(
@@ -169,18 +289,19 @@ class _ListaListasScreenState extends State<ListaListasScreen> {
               );
             },
           ),
-          IconButton(
-            icon: const Icon(Icons.collections),
-            tooltip: 'Repositorio de Figuras',
-            onPressed: () async {
-              await Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const RepositorioScreen(),
-                ),
-              );
-            },
-          ),
+          if (_esAdmin)
+            IconButton(
+              icon: const Icon(Icons.collections),
+              tooltip: 'Repositorio de Figuras',
+              onPressed: () async {
+                await Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const RepositorioScreen(),
+                  ),
+                );
+              },
+            ),
         ],
       ),
       body: _cargando
@@ -234,7 +355,7 @@ class _ListaListasScreenState extends State<ListaListasScreen> {
                                 .primaryContainer,
                             child: Icon(
                               Icons.list,
-                              color: Theme.of(context).colorScheme.primary,
+                              color: Theme.of(context).colorScheme.secondary,
                             ),
                           ),
                           title: Text(
@@ -243,8 +364,54 @@ class _ListaListasScreenState extends State<ListaListasScreen> {
                               fontWeight: FontWeight.bold,
                             ),
                           ),
-                          subtitle: Text(
-                            '${lista.productos.length} producto${lista.productos.length != 1 ? 's' : ''}',
+                          subtitle: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                '${lista.productos.length} producto${lista.productos.length != 1 ? 's' : ''}',
+                              ),
+                              const SizedBox(height: 8),
+                              // Porcentaje de completitud
+                              Builder(
+                                builder: (context) {
+                                  final porcentaje = _calcularPorcentajeCompletitud(lista);
+                                  final color = _obtenerColorPorcentaje(porcentaje);
+                                  return Row(
+                                    children: [
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              '${porcentaje.toStringAsFixed(0)}% completado',
+                                              style: TextStyle(
+                                                fontSize: 12,
+                                                fontWeight: FontWeight.w500,
+                                                color: color,
+                                              ),
+                                            ),
+                                            const SizedBox(height: 4),
+                                            // Barra de progreso
+                                            ClipRRect(
+                                              borderRadius: BorderRadius.circular(4),
+                                              child: LinearProgressIndicator(
+                                                value: lista.productos.isEmpty 
+                                                    ? 0.0 
+                                                    : porcentaje / 100,
+                                                minHeight: 6,
+                                                backgroundColor: Colors.grey[300],
+                                                valueColor: AlwaysStoppedAnimation<Color>(color),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ],
+                                  );
+                                },
+                              ),
+                            ],
                           ),
                           trailing: PopupMenuButton(
                             itemBuilder: (context) => [

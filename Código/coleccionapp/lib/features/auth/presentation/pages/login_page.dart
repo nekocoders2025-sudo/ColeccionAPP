@@ -111,8 +111,8 @@ class _LoginPageState extends State<LoginPage> {
                 children: [
                   // Logo
                   Container(
-                    height: 180,
-                    color: Theme.of(context).colorScheme.primary,
+                    height: 225,
+                    color: Theme.of(context).colorScheme.secondary,
                     child: Image.asset('lib/assets/icon.png'),
                   ),
 
@@ -120,10 +120,10 @@ class _LoginPageState extends State<LoginPage> {
 
                   // Nombre de la App
                   Text(
-                    "C O L E C C I O N  A P P",
+                    "Tienes cuenta? Inicia Sesión ahora",
                     style: TextStyle(
-                      fontSize: 25,
-                      color: Theme.of(context).colorScheme.inversePrimary,
+                      fontSize: 15,
+                      color: Theme.of(context).colorScheme.primary,
                     ),
                   ),
 
@@ -143,6 +143,7 @@ class _LoginPageState extends State<LoginPage> {
                     controller: pwController,
                     hintText: "Contraseña",
                     obscureText: true,
+                    showTogglePassword: true,
                   ),
 
                   const SizedBox(height: 10),
@@ -198,6 +199,7 @@ class _LoginPageState extends State<LoginPage> {
                   ),
                   const SizedBox(height: 25),
 
+                  
                   // Inicio Google
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -211,6 +213,7 @@ class _LoginPageState extends State<LoginPage> {
                     ],
                   ),
                   const SizedBox(height: 25),
+                  
 
                   // Registrar cuenta
                   Row(
